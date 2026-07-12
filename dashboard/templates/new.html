@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="/dashboard/">
+<meta name="mh-token" content="{{ control_token }}">
+<title>monohost · new app</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700&family=IBM+Plex+Sans:wght@0,400;0,500;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --p-white:#FFFFFF; --p-grey-50:#f9fafb; --p-grey-100:#f3f4f6; --p-grey-200:#dce0e4;
+  --p-grey-400:#9ca6af; --p-grey-500:#6b7580; --p-grey-600:#4b5963; --p-grey-900:#111c27;
+  --p-blue-800:#1962b4; --p-blue-900:#1a548e; --p-green-700:#227328; --p-red-700:#d40c0c;
+  --surface-page:var(--p-white); --surface-card:var(--p-grey-50);
+  --border-default:var(--p-grey-200);
+  --text-primary:var(--p-grey-900); --text-secondary:var(--p-grey-600); --text-tertiary:var(--p-grey-500);
+  --accent:var(--p-blue-800); --accent-hover:var(--p-blue-900); --alert:var(--p-red-700); --success:var(--p-green-700);
+  --font-display:"Inter Tight",ui-sans-serif,system-ui,sans-serif;
+  --font-sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --tracking-widish:0.08em; --ease-rise:cubic-bezier(0.22,1,0.36,1); --dur-base:150ms;
+}
+* { box-sizing:border-box; border-radius:0 !important; }
+body { margin:0; background:var(--surface-page); color:var(--text-primary); font-family:var(--font-sans);
+  font-size:13px; line-height:1.55; -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+::selection { background:var(--accent); color:#fff; }
+a { color:inherit; text-decoration:none; }
+.label { font-family:var(--font-sans); font-size:10.5px; letter-spacing:var(--tracking-widish);
+  text-transform:uppercase; color:var(--text-tertiary); font-weight:500; }
+.mono { font-family:var(--font-mono); }
+@keyframes rise { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.rise { animation:rise .5s var(--ease-rise) both; }
+
+.crumb { height:40px; border-bottom:1px solid var(--text-primary); display:flex; align-items:center;
+  gap:12px; padding:0 28px; font-size:11px; }
+.crumb img { height:22px; width:auto; }
+.crumb .sep { color:var(--border-default); }
+.crumb .name { font-weight:500; }
+.crumb a.back { margin-left:auto; font-family:var(--font-mono); color:var(--accent); }
+.crumb a.back:hover { text-decoration:underline; }
+
+.wrap { padding:40px 28px; max-width:760px; }
+.hero { margin-bottom:32px; }
+.hero .top { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+.hero .top .flex { flex:1; height:1px; background:var(--border-default); }
+.hero h1 { margin:0; font-family:var(--font-display); font-weight:500; font-size:clamp(34px,5vw,56px);
+  line-height:0.9; letter-spacing:-0.022em; padding-bottom:18px; border-bottom:1px solid var(--text-primary); }
+.hero .sub { margin-top:14px; font-size:14px; color:var(--text-secondary); max-width:60ch; }
+
+.demo { border:1px solid var(--border-default); }
+.demo-cap { display:flex; align-items:center; justify-content:space-between; padding:8px 14px;
+  border-bottom:1px solid var(--border-default); background:var(--surface-card); }
+.demo-cap .l { font-size:9.5px; letter-spacing:var(--tracking-widish); text-transform:uppercase; color:var(--text-tertiary); font-weight:500; }
+.demo-cap .r { font-family:var(--font-mono); font-size:10px; color:var(--text-tertiary); }
+.demo-body { padding:24px; }
+
+form { display:grid; grid-template-columns:1fr; gap:18px; }
+.flabel { display:block; margin-bottom:6px; }
+.flabel .req { color:var(--alert); margin-left:3px; }
+.fhint { display:block; margin-top:6px; font-size:10.5px; color:var(--text-tertiary); line-height:1.4; }
+.field { width:100%; background:var(--surface-page); border:1px solid var(--border-default); padding:8px 12px;
+  font-family:var(--font-sans); font-size:13px; color:var(--text-primary); transition:border-color var(--dur-base),padding var(--dur-base); }
+.field::placeholder { color:rgba(140,143,148,.7); }
+.field:focus { outline:none; border:2px solid var(--accent); padding:7px 11px; }
+select.field { appearance:none; padding-right:26px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 9 6'><path d='M0 0l4.5 6L9 0z' fill='%23111c27'/></svg>");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:9px; }
+.row { display:flex; gap:18px; } .row > div { flex:1; } .row > div.small { flex:0 0 150px; }
+.field code { font-family:var(--font-mono); font-size:11px; color:var(--accent); }
+
+.btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-sans); font-weight:500;
+  text-transform:uppercase; letter-spacing:var(--tracking-widish); border:1px solid var(--accent); cursor:pointer;
+  font-size:11px; padding:10px 18px; background:var(--accent); color:#fff; justify-self:start;
+  transition:background-color var(--dur-base),border-color var(--dur-base); }
+.btn:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+.btn:disabled { opacity:.45; cursor:default; }
+
+.log { margin-top:20px; background:var(--surface-card); border:1px solid var(--text-primary); padding:16px;
+  white-space:pre-wrap; font-family:var(--font-mono); font-size:12px; color:var(--text-secondary);
+  min-height:60px; max-height:50vh; overflow:auto; }
+.ok { color:var(--success); } .err { color:var(--alert); }
+
+.envblock { border-top:1px solid var(--border-default); padding-top:18px; }
+.envrow { display:flex; gap:10px; margin-bottom:8px; align-items:center; }
+.envrow .envname { flex:0 0 40%; }
+.envrow .envval { flex:1; }
+.envrow input { font-family:var(--font-mono); font-size:12px; }
+.envdel { flex:0 0 auto; border:1px solid var(--border-default); background:var(--surface-page);
+  color:var(--text-tertiary); cursor:pointer; font-size:15px; line-height:1; padding:7px 11px;
+  transition:border-color var(--dur-base),color var(--dur-base); }
+.envdel:hover { border-color:var(--alert); color:var(--alert); }
+.envrow.locked input { background:var(--p-grey-100); color:var(--text-tertiary); cursor:not-allowed; }
+.envlock { flex:0 0 auto; font-family:var(--font-sans); font-size:9.5px; letter-spacing:var(--tracking-widish);
+  text-transform:uppercase; color:var(--text-tertiary); padding:7px 8px; white-space:nowrap; }
+.envadd { display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+.addbtn { font-family:var(--font-sans); font-size:10.5px; letter-spacing:var(--tracking-widish);
+  text-transform:uppercase; border:1px solid var(--border-default); background:var(--surface-card);
+  color:var(--text-secondary); cursor:pointer; padding:7px 12px;
+  transition:border-color var(--dur-base),color var(--dur-base); }
+.addbtn:hover { border-color:var(--accent); color:var(--accent); }
+.envempty { font-size:11px; color:var(--text-tertiary); padding:2px 0 6px; }
+</style>
+</head>
+<body>
+<div class="crumb">
+  <img src="logo.png" alt="monohost">
+  <span class="sep">/</span><span class="name">New app</span>
+  <a class="back" href=".">← dashboard</a>
+</div>
+
+<div class="wrap rise">
+  <header class="hero">
+    <div class="top"><span class="label">monohost · deploy</span><span class="flex"></span><span class="label mono">onboard.sh</span></div>
+    <h1 class="display">Deploy a new app.</h1>
+    <p class="sub">Connect a GitHub repo and mint a name. The privileged helper clones it, builds it,
+    and routes it at <code class="field" style="display:inline;border:0;padding:0;background:none">{{ lan_host }}/&lt;name&gt;/</code> — output streams live below.</p>
+  </header>
+
+  <div class="demo">
+    <div class="demo-cap"><span class="l">Onboard form</span><span class="r">/ repo · name · branch</span></div>
+    <div class="demo-body">
+      <form id="f">
+        <label class="col" style="gap:0">
+          <span class="label flabel">GitHub repo <span class="req">*</span></span>
+          <select class="field" id="repo" required><option value="">Loading repos…</option></select>
+          <span class="fhint">Repos in the deploy org — the picker pre-fills the name and default branch.</span>
+        </label>
+        <div class="row">
+          <div>
+            <label>
+              <span class="label flabel">App name <span class="req">*</span></span>
+              <input class="field" id="name" placeholder="a-z 0-9 -" pattern="[a-z0-9][a-z0-9-]*" required>
+              <span class="fhint">Becomes the route segment — lowercase, used to mint <code style="font-family:var(--font-mono);color:var(--accent)">{{ lan_host }}/&lt;name&gt;</code>.</span>
+            </label>
+          </div>
+          <div class="small">
+            <label>
+              <span class="label flabel">Branch</span>
+              <input class="field" id="branch" value="main">
+            </label>
+          </div>
+        </div>
+
+        <div class="envblock">
+          <span class="label flabel">Environment variables</span>
+          <span class="fhint">Secrets &amp; config for this app — written to a <code style="font-family:var(--font-mono);color:var(--accent)">0600 .env.local</code>
+          and auto-loaded into the process. Use <b>+ S3 storage</b> / <b>+ MongoDB</b> to pre-fill the
+          standard names (paste the values from <code style="font-family:var(--font-mono);color:var(--accent)">mh-s3-provision</code>).
+          Names: <code style="font-family:var(--font-mono);color:var(--accent)">A–Z 0–9 _</code> · <code style="font-family:var(--font-mono);color:var(--accent)">PORT/HOME/PATH</code> are reserved.</span>
+          <div id="envrows" style="margin-top:12px"></div>
+          <div class="envadd">
+            <button type="button" class="addbtn" data-preset="blank">+ Variable</button>
+            <button type="button" class="addbtn" data-preset="s3">+ S3 storage</button>
+            <button type="button" class="addbtn" data-preset="mongo">+ MongoDB</button>
+          </div>
+        </div>
+
+        <button class="btn" id="go" type="submit">Deploy →</button>
+      </form>
+      <pre id="log" class="log" hidden></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const MH_TOKEN = (document.querySelector('meta[name="mh-token"]') || {}).content || '';
+const sel = document.getElementById('repo');
+const nameI = document.getElementById('name');
+const branchI = document.getElementById('branch');
+const log = document.getElementById('log');
+const go = document.getElementById('go');
+
+fetch('api/repos').then(r => r.json()).then(repos => {
+  if (repos.error) { sel.innerHTML = `<option value="">error: ${repos.error}${repos.detail ? ' — ' + repos.detail : ''}</option>`; return; }
+  sel.innerHTML = '<option value="">Select a repo…</option>' + repos.map(x =>
+    `<option value="${x.clone_url}" data-name="${x.name}" data-branch="${x.default_branch}">${x.full_name || x.name}${x.private ? ' (private)' : ''}</option>`
+  ).join('');
+}).catch(() => { sel.innerHTML = '<option value="">failed to load repos</option>'; });
+
+sel.addEventListener('change', () => {
+  const o = sel.selectedOptions[0];
+  if (o && o.dataset.name) {
+    if (!nameI.value) nameI.value = o.dataset.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    if (o.dataset.branch) branchI.value = o.dataset.branch;
+  }
+});
+
+// ── environment variable editor ──────────────────────────────────────────────
+const envRows = document.getElementById('envrows');
+const PRESETS = {
+  // canonical names the data-services docs / mh-s3-provision emit. The two endpoints are host-fixed
+  // (locked = read-only, not removable); the bucket + keys are filled from mh-s3-provision output.
+  // [name, value, placeholder, locked]
+  s3: [
+    ['S3_ENDPOINT_INTERNAL', 'http://127.0.0.1:9000',     '', true],
+    ['S3_ENDPOINT_PUBLIC',   'https://files.example.com', '', true],
+    ['S3_BUCKET',            '', 'my-bucket',             false],
+    ['S3_ACCESS_KEY',        '', 'from mh-s3-provision',  false],
+    ['S3_SECRET_KEY',        '', 'from mh-s3-provision',  false],
+  ],
+  mongo: [
+    ['MONGO_URI', 'mongodb://127.0.0.1:27017', '', true],
+    ['MONGO_DB',  '', 'your database name',     false],
+  ],
+};
+
+function syncEnvEmpty() {
+  let hint = envRows.querySelector('.envempty');
+  if (!envRows.querySelector('.envrow')) {
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'envempty';
+      hint.textContent = 'No variables. Add one, or use a preset below.';
+      envRows.appendChild(hint);
+    }
+  } else if (hint) {
+    hint.remove();
+  }
+}
+
+function existingNames() {
+  return new Set([...envRows.querySelectorAll('.envname')].map(i => i.value.trim()).filter(Boolean));
+}
+
+function addRow(name = '', value = '', placeholder = 'value', locked = false) {
+  const row = document.createElement('div');
+  row.className = locked ? 'envrow locked' : 'envrow';
+  const n = document.createElement('input');
+  n.className = 'field envname'; n.placeholder = 'NAME';
+  n.pattern = '[A-Za-z_][A-Za-z0-9_]*'; n.value = name;
+  const v = document.createElement('input');
+  v.className = 'field envval'; v.placeholder = placeholder; v.value = value;
+  if (locked) {
+    // host-fixed (e.g. the S3 endpoints): read-only, not focusable, not removable. The value is
+    // still read by gatherEnv() and sent on submit.
+    n.readOnly = v.readOnly = true;
+    n.tabIndex = v.tabIndex = -1;
+    const lock = document.createElement('span');
+    lock.className = 'envlock'; lock.textContent = 'fixed'; lock.title = 'set by the host — not editable';
+    row.append(n, v, lock);
+  } else {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'envdel'; del.title = 'remove'; del.textContent = '×';
+    del.addEventListener('click', () => { row.remove(); syncEnvEmpty(); });
+    row.append(n, v, del);
+  }
+  envRows.appendChild(row);
+  syncEnvEmpty();
+  return n;
+}
+
+document.querySelectorAll('.addbtn').forEach(btn => btn.addEventListener('click', () => {
+  const preset = btn.dataset.preset;
+  if (preset === 'blank') { addRow().focus(); return; }
+  const have = existingNames();
+  let firstNew = null;
+  for (const [name, value, ph, locked] of (PRESETS[preset] || [])) {
+    if (have.has(name)) continue;               // don't duplicate an already-added var
+    const input = addRow(name, value, ph, locked);
+    if (!firstNew && !value) firstNew = input.closest('.envrow').querySelector('.envval');
+  }
+  if (firstNew) firstNew.focus();               // jump to the first value that needs filling
+}));
+
+function gatherEnv() {
+  return [...envRows.querySelectorAll('.envrow')].map(row => ({
+    name: row.querySelector('.envname').value.trim(),
+    value: row.querySelector('.envval').value,
+  })).filter(e => e.name);
+}
+
+syncEnvEmpty();
+
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const repo = sel.value, name = nameI.value.trim(), branch = branchI.value.trim() || 'main';
+  if (!repo || !name) return;
+  go.disabled = true; log.hidden = false; log.textContent = '';
+  try {
+    const res = await fetch('onboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-MH-Token': MH_TOKEN },
+      body: JSON.stringify({ repo, name, branch, env: gatherEnv() })
+    });
+    if (res.status === 401 || res.status === 403 || res.status === 503) {
+      log.textContent = res.status === 403
+        ? 'Blocked: the control plane is LAN-only — open the dashboard at this Mac\'s .local name.'
+        : 'Blocked: missing or invalid admin token (printed once at install; see /opt/monohost/secrets/dashboard.token).';
+      go.disabled = false; return;
+    }
+    const reader = res.body.getReader(); const dec = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      log.textContent += dec.decode(value, { stream: true });
+      log.scrollTop = log.scrollHeight;
+    }
+    log.textContent += '\n(done — return to the dashboard to see it)';
+  } catch (err) {
+    log.textContent += `\nrequest failed: ${err}`;
+  } finally {
+    go.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

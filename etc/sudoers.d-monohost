@@ -1,0 +1,6 @@
+# monohost — install as /etc/sudoers.d/monohost  (mode 0440, root:wheel; validate with `visudo -cf`).
+#
+# Lets the unprivileged deployer run ONLY the immutable, root-owned control scripts as root, with no
+# password. Each target validates every argument — it is the trust boundary. No other command is
+# granted. This is the single narrow privilege escalation in the system.
+mh-deployer ALL=(root) NOPASSWD: /opt/monohost/bin/onboard.sh, /opt/monohost/bin/offboard.sh, /opt/monohost/bin/expose.sh, /opt/monohost/bin/unexpose.sh

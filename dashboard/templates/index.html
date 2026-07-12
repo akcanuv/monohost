@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="/dashboard/">
+<meta name="mh-token" content="{{ control_token }}">
+<title>monohost · control plane</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700&family=IBM+Plex+Sans:wght@0,400;0,500;0,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   monohost dashboard — hairlines, square corners, one accent, no shadows
+   on our chrome, the `rise` mount.
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --p-white:#FFFFFF; --p-grey-50:#f9fafb; --p-grey-100:#f3f4f6; --p-grey-200:#dce0e4;
+  --p-grey-300:#d1d7db; --p-grey-400:#9ca6af; --p-grey-500:#6b7580; --p-grey-600:#4b5963;
+  --p-grey-700:#374551; --p-grey-800:#1f2d37; --p-grey-900:#111c27; --p-grey-950:#030912;
+  --p-blue-50:#eef9ff; --p-blue-600:#1e93f2; --p-blue-700:#167bdf; --p-blue-800:#1962b4; --p-blue-900:#1a548e;
+  --p-red-50:#fff1f1; --p-red-200:#ffc5c5; --p-red-700:#d40c0c; --p-red-800:#a60e0e;
+  --p-green-400:#5ccc63; --p-green-600:#28912f; --p-green-700:#227328;
+  --p-yellow-600:#e29000; --p-yellow-800:#984d08;
+
+  --surface-page:var(--p-white); --surface-card:var(--p-grey-50); --surface-card-hover:var(--p-grey-100);
+  --border-default:var(--p-grey-200); --border-strong:var(--p-grey-400);
+  --text-primary:var(--p-grey-900); --text-secondary:var(--p-grey-600); --text-tertiary:var(--p-grey-500);
+  --text-disabled:var(--p-grey-400); --text-inverse:var(--p-white);
+  --accent:var(--p-blue-800); --accent-hover:var(--p-blue-900); --accent-lightest:var(--p-blue-50);
+  --alert:var(--p-red-700); --alert-hover:var(--p-red-800);
+  --success:var(--p-green-700); --warning:var(--p-yellow-800);
+
+  --font-display:"Inter Tight",ui-sans-serif,system-ui,sans-serif;
+  --font-sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --tracking-widish:0.08em; --tracking-wider2:0.14em;
+  --ease-rise:cubic-bezier(0.22,1,0.36,1); --dur-fast:120ms; --dur-base:150ms; --dur-rise:500ms;
+}
+* { box-sizing:border-box; border-radius:0 !important; }
+html,body { height:100%; }
+body {
+  margin:0; background:var(--surface-page); color:var(--text-primary);
+  font-family:var(--font-sans); font-size:13px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision;
+  font-feature-settings:"ss01","cv11";
+}
+::selection { background:var(--accent); color:var(--surface-page); }
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-thumb { background:var(--border-default); }
+::-webkit-scrollbar-thumb:hover { background:var(--text-secondary); }
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner { background:transparent; }
+* { scrollbar-color:var(--border-default) transparent; scrollbar-width:thin; }
+a { color:inherit; text-decoration:none; }
+
+.display { font-family:var(--font-display); font-weight:500; letter-spacing:-0.018em; line-height:0.92; }
+.mono { font-family:var(--font-mono); }
+.num  { font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; }
+.label { font-family:var(--font-sans); font-size:10.5px; letter-spacing:var(--tracking-widish);
+  text-transform:uppercase; color:var(--text-tertiary); font-weight:500; }
+.sq { display:inline-block; width:8px; height:8px; }
+.hatch-ink { background-image:repeating-linear-gradient(45deg,
+  rgba(11,12,14,.28) 0,rgba(11,12,14,.28) 1.5px,transparent 1.5px,transparent 5px); }
+
+@keyframes rise { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.rise { animation:rise var(--dur-rise) var(--ease-rise) both; }
+.rise-stagger > * { animation:rise .55s var(--ease-rise) both; }
+.rise-stagger > *:nth-child(1){animation-delay:.03s} .rise-stagger > *:nth-child(2){animation-delay:.06s}
+.rise-stagger > *:nth-child(3){animation-delay:.09s} .rise-stagger > *:nth-child(4){animation-delay:.12s}
+@media (prefers-reduced-motion:reduce){ .rise,.rise-stagger > *{ animation:none !important; } }
+
+/* ── shell ── */
+.shell { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+.side { position:sticky; top:0; height:100vh; overflow:auto; display:flex; flex-direction:column;
+  border-right:1px solid var(--text-primary); background:var(--surface-page); }
+.side-logo { padding:22px 20px 18px; border-bottom:2px solid var(--accent); display:flex; align-items:center; }
+.side-logo img { display:block; height:46px; width:auto; user-select:none; -webkit-user-drag:none; }
+.side-nav { padding:18px 8px; flex:1; }
+.side-nav .grp { padding:0 12px; margin:6px 0; }
+.nav-item { position:relative; display:flex; align-items:baseline; gap:12px; padding:8px 12px;
+  color:var(--text-secondary); transition:color var(--dur-base),background-color var(--dur-base); cursor:pointer; }
+.nav-item:hover { color:var(--text-primary); background:var(--surface-card); }
+.nav-item .bar { position:absolute; left:0; top:6px; bottom:6px; width:2px; background:transparent;
+  transition:background-color var(--dur-base); }
+.nav-item:hover .bar { background:var(--border-default); }
+.nav-item.active { color:var(--text-primary); background:var(--surface-card-hover); }
+.nav-item.active .bar { background:var(--accent); }
+.nav-item .n { font-family:var(--font-mono); font-size:10px; letter-spacing:var(--tracking-widish);
+  color:var(--text-tertiary); width:18px; font-variant-numeric:tabular-nums; }
+.nav-item .t { font-size:12.5px; font-weight:500; }
+.side-foot { padding:14px 20px 18px; display:flex; align-items:center; gap:12px; border-top:1px solid var(--border-default); }
+.side-foot .glyph { width:40px; height:40px; flex:none; border:1px solid var(--text-primary); display:grid;
+  place-items:center; font-family:var(--font-display); font-weight:700; font-size:20px; }
+.side-foot .credit { display:flex; flex-direction:column; gap:3px; font-size:9.5px; text-transform:uppercase;
+  letter-spacing:var(--tracking-wider2); color:var(--text-tertiary); }
+.side-foot .credit .a { color:var(--text-secondary); }
+
+/* ── main ── */
+.main { position:relative; min-width:0; }
+.crumb { position:sticky; top:0; z-index:20; height:40px; background:var(--surface-page);
+  border-bottom:1px solid var(--border-default); display:flex; align-items:center; gap:12px;
+  padding:0 24px 0 40px; font-size:11px; }
+.crumb .n { font-family:var(--font-mono); color:var(--text-tertiary); }
+.crumb .name { font-weight:500; color:var(--text-primary); }
+.crumb .sep { color:var(--border-default); }
+.crumb .code { font-family:var(--font-mono); color:var(--accent); }
+.crumb .live { margin-left:auto; display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono);
+  color:var(--text-tertiary); }
+.crumb .live .dot { width:7px; height:7px; background:var(--success); }
+.crumb .live .dot.stale { background:var(--alert); }
+.wrap { padding:40px; max-width:1240px; }
+
+/* ── hero ── */
+.hero { margin-bottom:44px; }
+.hero .top { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+.hero .top .flex { flex:1; height:1px; background:var(--border-default); }
+.hero .top .meta { font-size:11px; color:var(--text-secondary); font-family:var(--font-mono); }
+.hero h1 { margin:0; font-family:var(--font-display); font-weight:500;
+  font-size:clamp(40px,6vw,76px); line-height:0.9; letter-spacing:-0.022em;
+  padding-bottom:20px; border-bottom:1px solid var(--text-primary); }
+.hero .sub { margin-top:14px; font-size:14px; color:var(--text-secondary); max-width:62ch; }
+
+/* ── section head ── */
+.spec { margin-bottom:48px; scroll-margin-top:56px; }
+.spec-head { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+.spec-head .flex { flex:1; height:1px; background:var(--border-default); }
+.spec-head .idx { font-family:var(--font-mono); font-size:11px; color:var(--accent); }
+.spec h2 { margin:0 0 12px; font-family:var(--font-display); font-weight:500;
+  font-size:clamp(24px,3vw,34px); line-height:0.95; letter-spacing:-0.02em; }
+
+/* ── server metric tiles ── */
+.srv-grid { display:grid; gap:0; grid-template-columns:repeat(auto-fit,minmax(248px,1fr));
+  border-left:1px solid var(--text-primary); border-top:1px solid var(--text-primary); }
+.metric { position:relative; border-right:1px solid var(--text-primary); border-bottom:1px solid var(--text-primary);
+  padding:20px; background:var(--surface-page); }
+.metric .cap { display:flex; align-items:center; justify-content:space-between; }
+.metric .cap .st { width:8px; height:8px; background:var(--text-disabled); transition:background-color var(--dur-base); }
+.metric .big { font-family:var(--font-display); font-weight:500; font-size:54px; line-height:1;
+  letter-spacing:-0.022em; color:var(--accent); margin:14px 0 4px; transition:color var(--dur-base); }
+.metric .big .unit { font-size:20px; color:var(--text-tertiary); margin-left:4px; letter-spacing:0; }
+.metric .sub { font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); margin-top:4px;
+  display:flex; justify-content:space-between; gap:10px; }
+.metric .sub .k { color:var(--text-tertiary); }
+
+/* gauge track (the only chart grammar in the system — a segmented bar) */
+.gauge { height:8px; width:100%; border:1px solid var(--border-default); margin-top:12px; overflow:hidden; }
+.gauge > .fill { height:100%; width:0; background:var(--accent); transition:width .5s var(--ease-rise),background-color var(--dur-base); }
+.tone-ok   .big{color:var(--success);} .tone-ok   .fill{background:var(--p-green-400);} .tone-ok   .st{background:var(--success);}
+.tone-warn .big{color:var(--warning);} .tone-warn .fill{background:var(--p-yellow-600);} .tone-warn .st{background:var(--warning);}
+.tone-crit .big{color:var(--alert);}   .tone-crit .fill{background:var(--alert);}        .tone-crit .st{background:var(--alert);}
+
+/* load sparkline — drafting-room histogram of CPU load over time */
+.spark-wrap { grid-column:1 / -1; border-right:1px solid var(--text-primary); border-bottom:1px solid var(--text-primary);
+  padding:18px 20px; background:var(--surface-card); }
+.spark-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+.spark-head .ld { font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); }
+.spark-head .ld b { color:var(--text-primary); }
+.spark { display:flex; align-items:flex-end; gap:2px; height:60px; border-bottom:1px solid var(--text-primary);
+  padding-bottom:0; }
+.spark .bar { flex:1; min-width:2px; background:var(--accent); transition:height .3s linear,background-color .3s; }
+
+/* ── data table ── */
+.tablewrap { overflow-x:auto; }
+table.dt { width:100%; border-collapse:collapse; border-top:1px solid var(--text-primary); border-bottom:1px solid var(--text-primary); }
+table.dt thead th { text-align:left; font-family:var(--font-sans); font-size:10.5px; text-transform:uppercase;
+  letter-spacing:var(--tracking-widish); color:var(--text-secondary); font-weight:500; padding:12px 16px; white-space:nowrap;
+  border-bottom:4px solid; border-image:linear-gradient(var(--text-primary) 0 1px,transparent 1px 3px,var(--text-primary) 3px 4px) 4; }
+table.dt thead th.r { text-align:right; }
+table.dt tbody td { padding:12px 16px; font-size:12.5px; border-bottom:1px solid var(--border-default); position:relative; vertical-align:middle; }
+table.dt tbody tr:last-child td { border-bottom:0; }
+table.dt tbody tr { transition:background-color var(--dur-fast); }
+table.dt tbody tr:hover { background:var(--surface-card-hover); }
+table.dt tbody tr td:first-child::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
+  background:var(--accent); opacity:0; transition:opacity var(--dur-base); }
+table.dt tbody tr:hover td:first-child::before { opacity:1; }
+td.mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+td.r { text-align:right; }
+td a.route { color:var(--accent); }
+td a.route:hover { text-decoration:underline; }
+.appname { font-family:var(--font-display); font-weight:500; font-size:18px; letter-spacing:-0.018em; }
+
+/* ── badges ── */
+.badge { display:inline-flex; align-items:center; gap:5px; padding:2px 7px; font-size:10px; text-transform:uppercase;
+  letter-spacing:var(--tracking-widish); border:1px solid; font-weight:500; white-space:nowrap; }
+.b-up { border-color:var(--success); color:var(--success); }
+.b-down { border-color:var(--alert); color:var(--alert); }
+.b-unknown { border-color:var(--text-tertiary); color:var(--text-tertiary); }
+.zone { display:inline-flex; align-items:center; gap:4px; margin-left:7px; padding:1px 6px; font-size:9.5px;
+  text-transform:uppercase; letter-spacing:var(--tracking-widish); border:1px solid; font-weight:500; }
+.zone.dev { border-color:var(--accent); color:var(--accent); }
+.zone.prod { border-color:var(--warning); color:var(--warning); }
+.empty { color:var(--text-disabled); }
+
+/* ── buttons ── */
+.btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-sans); font-weight:500;
+  text-transform:uppercase; letter-spacing:var(--tracking-widish); border:1px solid; cursor:pointer;
+  transition:background-color var(--dur-base),color var(--dur-base),border-color var(--dur-base);
+  font-size:11px; padding:9px 16px; background:var(--surface-page); }
+.btn.sm { font-size:10px; padding:6px 11px; }
+.btn-primary { background:var(--accent); color:var(--surface-page); border-color:var(--accent); }
+.btn-primary:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+.btn-secondary { color:var(--text-primary); border-color:var(--text-primary); }
+.btn-secondary:hover { background:var(--text-primary); color:var(--surface-page); }
+.btn-danger { color:var(--alert); border-color:var(--alert); }
+.btn-danger:hover { background:var(--alert); color:var(--surface-page); }
+.zonesel { font-family:var(--font-sans); font-size:11px; padding:5px 8px; background:var(--surface-page);
+  border:1px solid var(--border-default); color:var(--text-primary); cursor:pointer; }
+.zonesel:focus { outline:none; border:1px solid var(--accent); }
+.actions { display:flex; align-items:center; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+
+/* ── activity list ── */
+ul.deploys { list-style:none; margin:0; padding:0; border-top:1px solid var(--text-primary); border-bottom:1px solid var(--border-default); }
+ul.deploys li { position:relative; padding:11px 16px; border-bottom:1px solid var(--border-default);
+  font-family:var(--font-mono); font-size:12px; color:var(--text-secondary); transition:background-color var(--dur-fast); }
+ul.deploys li:last-child { border-bottom:0; }
+ul.deploys li:hover { background:var(--surface-card-hover); }
+ul.deploys li.empty { color:var(--text-disabled); font-family:var(--font-sans); }
+
+.empty-row { display:flex; align-items:center; justify-content:space-between; padding:36px 16px;
+  border-top:1px solid var(--border-default); }
+.empty-row .msg { font-size:13px; color:var(--text-secondary); }
+.empty-row a { font-size:11px; text-transform:uppercase; letter-spacing:var(--tracking-widish); color:var(--accent); font-weight:500; }
+
+/* ── live-log drawer ── */
+.appname.clickable { cursor:pointer; transition:color var(--dur-base); }
+.appname.clickable:hover { color:var(--accent); }
+.logpanel-backdrop { position:fixed; inset:0; z-index:55; background:rgba(3,9,18,.30);
+  opacity:0; pointer-events:none; transition:opacity var(--dur-base); }
+.logpanel-backdrop.open { opacity:1; pointer-events:auto; }
+.logpanel { position:fixed; top:0; right:0; bottom:0; width:min(620px,94vw); z-index:60;
+  display:flex; flex-direction:column; background:var(--surface-page);
+  border-left:2px solid var(--accent); transform:translateX(100%);
+  transition:transform var(--dur-rise) var(--ease-rise); }
+.logpanel.open { transform:translateX(0); }
+.logpanel-head { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:16px 20px; border-bottom:1px solid var(--text-primary); }
+.lp-title { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.lp-title .label { color:var(--text-tertiary); }
+.lp-name { font-family:var(--font-display); font-weight:500; font-size:24px; letter-spacing:-0.02em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lp-meta { display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11px;
+  color:var(--text-tertiary); white-space:nowrap; }
+.lp-dot { width:8px; height:8px; background:var(--text-disabled); transition:background-color var(--dur-base); }
+.lp-dot.live { background:var(--success); }
+.logstream { flex:1; margin:0; padding:16px 20px; overflow:auto; background:var(--surface-card);
+  font-family:var(--font-mono); font-size:12px; line-height:1.55; color:var(--text-secondary);
+  white-space:pre-wrap; word-break:break-word; }
+.logstream:empty::before { content:"waiting for output…"; color:var(--text-disabled); }
+
+@media (max-width:760px){ .shell { grid-template-columns:1fr; } .side { position:static; height:auto; flex-direction:row; flex-wrap:wrap; } .side-nav{ display:none; } .wrap{ padding:24px; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ── sidebar ── -->
+  <aside class="side">
+    <div class="side-logo">
+      <img src="logo.png" alt="monohost" draggable="false" />
+    </div>
+    <nav class="side-nav">
+      <div class="grp label">Control plane</div>
+      <a class="nav-item active" data-sec="server"><span class="bar"></span><span class="n num">00</span><span class="t">Server</span></a>
+      <a class="nav-item" data-sec="apps"><span class="bar"></span><span class="n num">01</span><span class="t">Apps</span></a>
+      <a class="nav-item" data-sec="activity"><span class="bar"></span><span class="n num">02</span><span class="t">Activity</span></a>
+      <div class="grp label" style="margin-top:18px">Deploy</div>
+      <a class="nav-item" href="new"><span class="bar"></span><span class="n num">+</span><span class="t">New app</span></a>
+    </nav>
+    <div class="side-foot">
+      <div class="glyph">M</div>
+      <div class="credit">
+        <span class="a">single-host deploy plane</span>
+        <span style="display:flex;align-items:center;gap:6px"><span class="sq" style="background:var(--accent)"></span>monohost</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── main ── -->
+  <main class="main">
+    <div class="crumb">
+      <span class="n num">MH</span><span class="sep">/</span><span class="name">Control plane</span>
+      <span class="sep">›</span><span class="code">{{ system.host }}</span>
+      <span class="live"><span class="dot" id="livedot"></span><span id="clock" class="num">—</span></span>
+    </div>
+
+    <div class="wrap rise">
+      <!-- HERO -->
+      <header class="hero">
+        <div class="top">
+          <span class="label">monohost · control plane</span>
+          <span class="flex"></span>
+          <span class="meta num">{{ apps|length }} app{{ '' if apps|length == 1 else 's' }} · {{ system.cores }} cores · live</span>
+        </div>
+        <h1 class="mono" style="font-family:var(--font-mono);font-weight:700;letter-spacing:-0.04em">monohost</h1>
+        <p class="sub">The single-host deploy plane — live health on every registered app,
+        the server it all runs on, and a tail of what changed. Read-only, refreshed in place.</p>
+      </header>
+
+      <!-- 00 · SERVER -->
+      <section class="spec" id="server">
+        <div class="spec-head"><span class="idx num">00</span><span class="flex"></span><span class="label">Host telemetry · {{ system.os }} · {{ system.arch }}</span></div>
+        <h2>Server load.</h2>
+        {% set cpu = system.cpu_pct %}
+        {% set mempct = system.mem.pct if system.mem else none %}
+        {% set diskpct = system.disk.pct if system.disk else none %}
+        {% set diskfree = (100 - system.disk.pct)|round(1) if system.disk and system.disk.pct is not none else none %}
+        {% macro tone(p) %}{% if p is none %}{% elif p < 70 %}tone-ok{% elif p < 90 %}tone-warn{% else %}tone-crit{% endif %}{% endmacro %}
+        <div class="srv-grid" id="srvgrid">
+
+          <!-- CPU LOAD -->
+          <div class="metric {{ tone(cpu) }}" id="m-cpu">
+            <div class="cap"><span class="label">CPU load</span><span class="st"></span></div>
+            <div class="big num"><span data-f="cpu">{{ cpu|round|int if cpu is not none else "—" }}</span><span class="unit">%</span></div>
+            <div class="gauge"><div class="fill" data-f="cpu-bar" style="width:{{ [cpu, 100]|min if cpu is not none else 0 }}%"></div></div>
+            <div class="sub"><span class="k">load 1m</span><span class="num" data-f="load1">{{ "%.2f"|format(system.load[0]) if system.load else "—" }}</span></div>
+            <div class="sub"><span class="k">cores</span><span class="num">{{ system.cores }}</span></div>
+          </div>
+
+          <!-- MEMORY -->
+          <div class="metric {{ tone(mempct) }}" id="m-mem">
+            <div class="cap"><span class="label">Memory</span><span class="st"></span></div>
+            <div class="big num"><span data-f="mem">{{ mempct|round|int if mempct is not none else "—" }}</span><span class="unit">%</span></div>
+            <div class="gauge"><div class="fill" data-f="mem-bar" style="width:{{ [mempct, 100]|min if mempct is not none else 0 }}%"></div></div>
+            <div class="sub"><span class="k">used</span><span class="num" data-f="mem-used">{{ (system.mem.used|bytes) if system.mem else "—" }}</span></div>
+            <div class="sub"><span class="k">total</span><span class="num" data-f="mem-total">{{ (system.mem.total|bytes) if system.mem else "—" }}</span></div>
+          </div>
+
+          <!-- DISK — headline is free %, gauge shows used (low free is the danger) -->
+          <div class="metric {% if diskfree is none %}{% elif diskfree > 30 %}tone-ok{% elif diskfree > 10 %}tone-warn{% else %}tone-crit{% endif %}" id="m-disk">
+            <div class="cap"><span class="label">Disk · /</span><span class="st"></span></div>
+            <div class="big num"><span data-f="disk">{{ diskfree|round|int if diskfree is not none else "—" }}</span><span class="unit">%</span></div>
+            <div class="gauge"><div class="fill" data-f="disk-bar" style="width:{{ diskpct if diskpct is not none else 0 }}%"></div></div>
+            <div class="sub"><span class="k">free</span><span class="num" data-f="disk-free">{{ (system.disk.free|bytes) if system.disk else "—" }}</span></div>
+            <div class="sub"><span class="k">total</span><span class="num" data-f="disk-total">{{ (system.disk.total|bytes) if system.disk else "—" }}</span></div>
+          </div>
+
+          <!-- UPTIME / HOST -->
+          <div class="metric" id="m-up">
+            <div class="cap"><span class="label">Uptime</span><span class="sq" style="background:var(--accent)"></span></div>
+            <div class="big" style="color:var(--text-primary)"><span data-f="uptime" style="font-size:36px">{{ system.uptime|uptime }}</span></div>
+            <div class="gauge" style="border-color:transparent"></div>
+            <div class="sub"><span class="k">host</span><span class="num" style="color:var(--text-primary)">{{ system.host }}</span></div>
+            <div class="sub"><span class="k">load 5m/15m</span><span class="num" data-f="load515">{{ "%.2f / %.2f"|format(system.load[1], system.load[2]) if system.load else "—" }}</span></div>
+          </div>
+
+          <!-- CPU SPARKLINE -->
+          <div class="spark-wrap">
+            <div class="spark-head">
+              <span class="label">CPU load · live history</span>
+              <span class="ld num">1m <b data-f="load1">—</b> · 5m <b data-f="load5">—</b> · 15m <b data-f="load15">—</b></span>
+            </div>
+            <div class="spark" id="spark"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 01 · APPS -->
+      <section class="spec" id="apps">
+        <div class="spec-head"><span class="idx num">01</span><span class="flex"></span><span class="label">Registered apps · loopback health · click a name for live logs</span></div>
+        <h2>Active services.</h2>
+        <div class="tablewrap">
+        <table class="dt">
+          <thead>
+            <tr><th>App</th><th>Status</th><th>Route</th><th>Type</th><th class="r">Port</th><th>Deployed</th><th class="r">Latency</th><th>Public</th><th class="r"></th></tr>
+          </thead>
+          <tbody id="approws">
+          {% for a in apps %}
+            <tr data-app="{{ a.name }}">
+              <td><span class="appname clickable" title="Watch live logs">{{ a.name }}</span></td>
+              <td class="cell-status">
+                {% if a.health.up == true %}<span class="badge b-up"><span class="sq" style="background:var(--success)"></span>up</span>
+                {% elif a.health.up == false %}<span class="badge b-down"><span class="sq" style="background:var(--alert)"></span>down</span>
+                {% else %}<span class="badge b-unknown">?</span>{% endif %}
+              </td>
+              <td><a class="route mono" href="{{ a.route }}">{{ a.route }}</a></td>
+              <td class="mono" style="color:var(--text-secondary)">{{ a.type }}</td>
+              <td class="mono r">{{ a.port or "—" }}</td>
+              <td class="mono cell-sha" style="color:var(--accent)">{{ a.sha }}</td>
+              <td class="mono r cell-latency" style="color:var(--text-tertiary)">{% if a.health.ms is defined %}{{ a.health.ms }} ms{% else %}{{ a.health.detail or "—" }}{% endif %}</td>
+              <td>
+                {% if a.public and a.public.exposed %}
+                  <a class="route mono" href="{{ a.public.url }}" target="_blank" rel="noopener">{{ a.public.url | replace("https://", "") }}</a>
+                  <span class="zone {{ a.public.zone }}" title="{{ a.public.fqdn }}"><span class="sq" style="background:currentColor"></span>{{ a.public.zone }}</span>
+                {% elif a.name != 'dashboard' %}
+                  <span class="empty">private</span>
+                {% else %}<span class="empty">—</span>{% endif %}
+              </td>
+              <td class="r">
+                <div class="actions">
+                {% if a.name != 'dashboard' %}
+                  {% if a.public and a.public.exposed %}
+                    <button class="btn btn-secondary sm" onclick="unexpose('{{ a.name }}')">unexpose</button>
+                  {% else %}
+                    {% if domains|length > 1 %}<select id="domain-{{ a.name }}" class="zonesel">{% for d in domains %}<option value="{{ d.domain }}">{{ d.domain }}</option>{% endfor %}</select>{% endif %}
+                    <select id="zone-{{ a.name }}" class="zonesel"><option value="dev">dev</option><option value="prod">prod</option></select>
+                    <button class="btn btn-primary sm" onclick="expose('{{ a.name }}')">expose</button>
+                  {% endif %}
+                  <button class="btn btn-danger sm" onclick="offboard('{{ a.name }}')">offboard</button>
+                {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="9"><div class="empty-row"><span class="msg">No apps registered.</span><a href="new">Deploy the first →</a></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </section>
+
+      <!-- 02 · ACTIVITY -->
+      <section class="spec" id="activity">
+        <div class="spec-head"><span class="idx num">02</span><span class="flex"></span><span class="label">Recent deploys · deployd.log</span></div>
+        <h2>Logs.</h2>
+        <ul class="deploys">
+          {% for d in activity %}<li>{{ d }}</li>{% else %}<li class="empty">No activity yet.</li>{% endfor %}
+        </ul>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ── live-log drawer ── -->
+<div class="logpanel-backdrop" id="logpanel-backdrop"></div>
+<aside class="logpanel" id="logpanel" aria-hidden="true">
+  <div class="logpanel-head">
+    <div class="lp-title">
+      <span class="label">Live logs · tail -F</span>
+      <span class="lp-name" id="lp-name">—</span>
+    </div>
+    <div class="lp-meta">
+      <span class="lp-dot" id="lp-dot"></span><span id="lp-status">idle</span>
+      <button class="btn btn-secondary sm" id="lp-close">close</button>
+    </div>
+  </div>
+  <pre class="logstream" id="logstream"></pre>
+</aside>
+
+<script>
+/* ── helpers ── */
+const fmtBytes = (n) => {
+  if (n == null) return '—';
+  const u = ['B','KB','MB','GB','TB','PB']; let i = 0; n = Number(n);
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (n >= 100 || i === 0 ? Math.round(n) : n.toFixed(1)) + ' ' + u[i];
+};
+const fmtUptime = (s) => {
+  if (s == null) return '—';
+  s = Math.floor(s); const d = Math.floor(s/86400); const h = Math.floor(s%86400/3600); const m = Math.floor(s%3600/60);
+  if (d) return d + 'd ' + h + 'h'; if (h) return h + 'h ' + m + 'm'; return m + 'm';
+};
+const tone = (pct) => pct == null ? '' : pct < 70 ? 'tone-ok' : pct < 90 ? 'tone-warn' : 'tone-crit';
+const setAll = (key, val) => document.querySelectorAll('[data-f="'+key+'"]').forEach(e => e.textContent = val);
+
+/* ── server telemetry: poll /api/system, paint gauges + sparkline ── */
+const SPARK_N = 56;
+let spark = [];
+function buildSpark() {
+  const host = document.getElementById('spark');
+  host.innerHTML = '';
+  for (let i = 0; i < SPARK_N; i++) { const b = document.createElement('div'); b.className = 'bar'; b.style.height = '0%'; host.appendChild(b); }
+}
+function paintSpark() {
+  const bars = document.getElementById('spark').children;
+  const start = Math.max(0, spark.length - SPARK_N);
+  for (let i = 0; i < SPARK_N; i++) {
+    const v = spark[start + i];
+    const bar = bars[i];
+    if (v == null) { bar.style.height = '0%'; continue; }
+    bar.style.height = Math.max(2, Math.min(100, v)) + '%';
+    const t = v < 70 ? 'var(--accent)' : v < 90 ? 'var(--p-yellow-600)' : 'var(--alert)';
+    bar.style.background = t;
+  }
+}
+function applyTone(id, pct) {
+  const el = document.getElementById(id);
+  el.classList.remove('tone-ok','tone-warn','tone-crit');
+  const t = tone(pct); if (t) el.classList.add(t);
+  const fill = el.querySelector('.fill'); if (fill) fill.style.width = (pct == null ? 0 : Math.min(100, pct)) + '%';
+}
+async function pollSystem() {
+  try {
+    const s = await (await fetch('api/system', { cache: 'no-store' })).json();
+    // CPU
+    setAll('cpu', s.cpu_pct == null ? '—' : Math.round(s.cpu_pct));
+    applyTone('m-cpu', s.cpu_pct);
+    if (s.load) {
+      setAll('load1', s.load[0].toFixed(2)); setAll('load5', s.load[1].toFixed(2)); setAll('load15', s.load[2].toFixed(2));
+      setAll('load515', s.load[1].toFixed(2) + ' / ' + s.load[2].toFixed(2));
+    }
+    // Memory
+    if (s.mem) {
+      setAll('mem', Math.round(s.mem.pct)); applyTone('m-mem', s.mem.pct);
+      setAll('mem-used', fmtBytes(s.mem.used)); setAll('mem-total', fmtBytes(s.mem.total));
+    }
+    // Disk — gauge shows USED; the headline number is FREE %, which is what you act on.
+    if (s.disk) {
+      const freePct = s.disk.pct == null ? null : +(100 - s.disk.pct).toFixed(1);
+      setAll('disk', freePct == null ? '—' : Math.round(freePct));
+      const el = document.getElementById('m-disk');
+      el.classList.remove('tone-ok','tone-warn','tone-crit');
+      // low free space is the danger: invert the threshold.
+      const t = freePct == null ? '' : freePct > 30 ? 'tone-ok' : freePct > 10 ? 'tone-warn' : 'tone-crit';
+      if (t) el.classList.add(t);
+      const fill = el.querySelector('.fill'); if (fill) fill.style.width = (s.disk.pct == null ? 0 : s.disk.pct) + '%';
+      setAll('disk-free', fmtBytes(s.disk.free)); setAll('disk-total', fmtBytes(s.disk.total));
+    }
+    setAll('uptime', fmtUptime(s.uptime));
+    if (s.cpu_pct != null) { spark.push(s.cpu_pct); if (spark.length > SPARK_N) spark.shift(); paintSpark(); }
+    markLive(true);
+  } catch (e) { markLive(false); }
+}
+
+/* ── apps: refresh status/latency/sha in place; reload if the set changes ── */
+let appNames = new Set([...document.querySelectorAll('#approws tr[data-app]')].map(r => r.dataset.app));
+function statusBadge(up) {
+  if (up === true) return '<span class="badge b-up"><span class="sq" style="background:var(--success)"></span>up</span>';
+  if (up === false) return '<span class="badge b-down"><span class="sq" style="background:var(--alert)"></span>down</span>';
+  return '<span class="badge b-unknown">?</span>';
+}
+async function pollApps() {
+  try {
+    const apps = await (await fetch('api/apps', { cache: 'no-store' })).json();
+    const names = new Set(apps.map(a => a.name));
+    if (names.size !== appNames.size || [...names].some(n => !appNames.has(n))) { location.reload(); return; }
+    for (const a of apps) {
+      const row = document.querySelector('#approws tr[data-app="' + a.name + '"]'); if (!row) continue;
+      const st = row.querySelector('.cell-status'); if (st) st.innerHTML = statusBadge(a.health.up);
+      const sha = row.querySelector('.cell-sha'); if (sha) sha.textContent = a.sha;
+      const lat = row.querySelector('.cell-latency');
+      if (lat) lat.textContent = (a.health.ms !== undefined && a.health.ms !== null) ? a.health.ms + ' ms' : (a.health.detail || '—');
+    }
+  } catch (e) { /* keep last-known on a blip */ }
+}
+
+/* ── live clock + heartbeat dot ── */
+let lastOk = Date.now();
+function markLive(ok) { if (ok) lastOk = Date.now(); }
+function tickClock() {
+  const d = new Date();
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  const p = (n) => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent =
+    d.getFullYear() + ' ' + mo + ' ' + p(d.getDate()) + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  document.getElementById('livedot').classList.toggle('stale', Date.now() - lastOk > 12000);
+}
+
+/* ── nav scroll-spy ── */
+(function(){
+  const links = [...document.querySelectorAll('.nav-item[data-sec]')];
+  const map = new Map(links.map(l => [l.dataset.sec, l]));
+  links.forEach(l => l.addEventListener('click', () => {
+    const sec = document.getElementById(l.dataset.sec);
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const lk = map.get(e.target.id); if (lk) lk.classList.add('active'); } });
+  }, { rootMargin: '-15% 0px -75% 0px', threshold: 0 });
+  document.querySelectorAll('.spec').forEach(s => obs.observe(s));
+})();
+
+/* ── boot ── */
+buildSpark();
+pollSystem(); pollApps(); tickClock();
+setInterval(pollSystem, 3000);
+setInterval(pollApps, 8000);
+setInterval(tickClock, 1000);
+
+/* ── app actions (privileged helpers re-validate server-side; mutations carry the admin token) ── */
+const MH_TOKEN = (document.querySelector('meta[name="mh-token"]') || {}).content || '';
+const ctrlHeaders = () => ({ 'Content-Type': 'application/json', 'X-MH-Token': MH_TOKEN });
+function authHint(r) {
+  if (r.status === 401) return 'the dashboard admin token is missing or wrong (it was printed once at install; see /opt/monohost/secrets/dashboard.token).';
+  if (r.status === 403) return 'the control plane is LAN-only — open the dashboard at this Mac\'s .local name.';
+  if (r.status === 503) return 'no admin token on the box yet — re-run the installer.';
+  return null;
+}
+async function offboard(name) {
+  if (!confirm(`Offboard "${name}"? This stops + removes its daemon, route, and files.`)) return;
+  try {
+    const r = await fetch('offboard', { method: 'POST', headers: ctrlHeaders(), body: JSON.stringify({ name }) });
+    const hint = authHint(r); if (hint) { alert('offboard blocked: ' + hint); return; }
+    const d = await r.json();
+    if (d.ok) { location.reload(); } else { alert(`offboard failed (exit ${d.rc}):\n\n${d.output}`); }
+  } catch (e) { alert('offboard request failed: ' + e); }
+}
+async function expose(name) {
+  const zone = document.getElementById('zone-' + name).value;
+  const domSel = document.getElementById('domain-' + name);
+  const domain = domSel ? domSel.value : '';
+  const where = domain ? ` on ${domain}` : '';
+  if (!confirm(`Expose "${name}" in the ${zone} zone${where}? It will be reachable on the internet.`)) return;
+  try {
+    const body = { name, zone };
+    if (domain) body.domain = domain;
+    const r = await fetch('expose', { method: 'POST', headers: ctrlHeaders(), body: JSON.stringify(body) });
+    const hint = authHint(r); if (hint) { alert('expose blocked: ' + hint); return; }
+    const text = await r.text();
+    // expose.sh streams its log and ends with "[exit N]" — N 0/2 = exposed, anything else = failure.
+    const m = text.match(/\[exit (\d+)\]/); const code = m ? Number(m[1]) : 1;
+    if (code === 0 || code === 2) { location.reload(); }
+    else { alert(`expose failed (exit ${code}):\n\n${text}`); }
+  } catch (e) { alert('expose request failed: ' + e); }
+}
+async function unexpose(name) {
+  if (!confirm(`Unexpose "${name}"? It will no longer be reachable on the internet.`)) return;
+  try {
+    const r = await fetch('unexpose', { method: 'POST', headers: ctrlHeaders(), body: JSON.stringify({ name }) });
+    const hint = authHint(r); if (hint) { alert('unexpose blocked: ' + hint); return; }
+    const d = await r.json();
+    if (d.ok) { location.reload(); } else { alert(`unexpose failed (exit ${d.rc}):\n\n${d.output}`); }
+  } catch (e) { alert('unexpose request failed: ' + e); }
+}
+
+/* ── live-log drawer: click a service name → stream tail -F of its logs ── */
+const lp = document.getElementById('logpanel');
+const lpBackdrop = document.getElementById('logpanel-backdrop');
+const lpStream = document.getElementById('logstream');
+const lpName = document.getElementById('lp-name');
+const lpStatus = document.getElementById('lp-status');
+const lpDot = document.getElementById('lp-dot');
+let logCtrl = null;   // AbortController for the active stream
+let logName = null;
+
+function closeLogs() {
+  if (logCtrl) { logCtrl.abort(); logCtrl = null; }
+  logName = null;
+  lp.classList.remove('open'); lpBackdrop.classList.remove('open');
+  lp.setAttribute('aria-hidden', 'true');
+  lpDot.classList.remove('live');
+}
+async function openLogs(name) {
+  if (logName === name && lp.classList.contains('open')) return;  // already watching this one
+  if (logCtrl) logCtrl.abort();                                   // stop the previous stream
+  logName = name;
+  lpName.textContent = name;
+  lpName.title = name;
+  lpStream.textContent = '';
+  lpStatus.textContent = 'connecting…';
+  lpDot.classList.remove('live');
+  lp.classList.add('open'); lpBackdrop.classList.add('open');
+  lp.setAttribute('aria-hidden', 'false');
+  const ctrl = new AbortController(); logCtrl = ctrl;
+  try {
+    const r = await fetch('logs/' + encodeURIComponent(name), { signal: ctrl.signal, cache: 'no-store' });
+    if (!r.ok) {
+      let msg = r.status;
+      try { msg = (await r.json()).error || r.status; } catch (e) {}
+      lpStream.textContent = `no logs available for "${name}" (${msg})`;
+      lpStatus.textContent = 'unavailable';
+      return;
+    }
+    lpStatus.textContent = 'streaming'; lpDot.classList.add('live');
+    const reader = r.body.getReader(); const dec = new TextDecoder();
+    const stickToBottom = () => lpStream.scrollTop + lpStream.clientHeight >= lpStream.scrollHeight - 48;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const stick = stickToBottom();
+      lpStream.append(dec.decode(value, { stream: true }));
+      // keep the buffer bounded so a long live watch doesn't grow without limit
+      if (lpStream.textContent.length > 240000) lpStream.textContent = lpStream.textContent.slice(-180000);
+      if (stick) lpStream.scrollTop = lpStream.scrollHeight;
+    }
+    if (logName === name) { lpStatus.textContent = 'ended'; lpDot.classList.remove('live'); }
+  } catch (e) {
+    if (e.name !== 'AbortError') { lpStatus.textContent = 'disconnected'; lpDot.classList.remove('live'); }
+  }
+}
+document.getElementById('lp-close').addEventListener('click', closeLogs);
+lpBackdrop.addEventListener('click', closeLogs);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLogs(); });
+// delegate so it keeps working after pollApps() re-renders cells
+document.getElementById('approws').addEventListener('click', (e) => {
+  const el = e.target.closest('.appname.clickable'); if (!el) return;
+  const row = el.closest('tr[data-app]'); if (row) openLogs(row.dataset.app);
+});
+</script>
+</body>
+</html>

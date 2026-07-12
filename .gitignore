@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+# the dashboard is bundled into this repo (run from dir: dashboard); examples are a separate repo
+examples/
+# secrets / live runtime state must never be committed (belt-and-suspenders; real state lives in
+# /opt/monohost, not the repo — but guard against a stray copy under cloudflare/ or secrets/)
+secrets/
+*.token
+cloudflare/zones.env
+cloudflare/config.yml
+cloudflare/*.json

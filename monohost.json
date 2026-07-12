@@ -1,0 +1,5 @@
+{
+  "run": "uvicorn main:app --host 127.0.0.1 --port ${PORT}",
+  "health": "/healthz",
+  "dir": "dashboard"
+}
