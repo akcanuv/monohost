@@ -8,6 +8,8 @@ examples/
 # /opt/monohost, not the repo — but guard against a stray copy under cloudflare/ or secrets/)
 secrets/
 *.token
+# local ops runbooks — real hostnames/users/UUIDs, must not land in a public repo
+MONGO-RS-ROLLBACK.md
 cloudflare/zones.env
 cloudflare/config.yml
 cloudflare/*.json
