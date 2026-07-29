@@ -91,6 +91,32 @@ def test_read_exposures_domain_column(tmp_path):
     assert exp["new"]["domain"] == "example.org"
 
 
+def test_read_env_local_roundtrips_what_onboard_wrote(tmp_path):
+    """The edit form pre-fill must give back exactly what onboard.sh quoted into .env.local."""
+    import shlex
+    main = _load_main_with_root(tmp_path)
+    appdir = tmp_path / "apps" / "smoke"
+    appdir.mkdir(parents=True)
+    vals = {
+        "PLAIN": "abc",
+        "SPACED": "two words",
+        "TRICKY": "quote'and $dollar & pipe|",
+        "EMPTY": "",
+        "MULTILINE": "-----KEY-----\nline2\n",
+    }
+    (appdir / ".env.local").write_text("".join(f"{k}={shlex.quote(v)}\n" for k, v in vals.items()))
+    assert main.read_env_local("smoke") == [{"name": k, "value": v} for k, v in vals.items()]
+
+
+def test_read_env_local_empty_when_missing_or_broken(tmp_path):
+    main = _load_main_with_root(tmp_path)
+    assert main.read_env_local("nope") == []
+    appdir = tmp_path / "apps" / "broken"
+    appdir.mkdir(parents=True)
+    (appdir / ".env.local").write_text("A='unterminated\n")   # ValueError from shlex, not a 500
+    assert main.read_env_local("broken") == []
+
+
 def _control_client(main):
     from starlette.testclient import TestClient
     main.app.dependency_overrides[main.require_control] = lambda: None

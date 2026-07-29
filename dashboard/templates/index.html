@@ -397,6 +397,7 @@ ul.deploys li.empty { color:var(--text-disabled); font-family:var(--font-sans); 
                     <select id="zone-{{ a.name }}" class="zonesel"><option value="dev">dev</option><option value="prod">prod</option></select>
                     <button class="btn btn-primary sm" onclick="expose('{{ a.name }}')">expose</button>
                   {% endif %}
+                  <a class="btn btn-secondary sm" href="new?name={{ a.name }}" title="Edit environment variables and redeploy">edit</a>
                   <button class="btn btn-danger sm" onclick="offboard('{{ a.name }}')">offboard</button>
                 {% endif %}
                 </div>

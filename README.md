@@ -52,6 +52,10 @@ release is self-healing — deployd rolls back a failed build to the previous co
 Open the dashboard (`http://<name>.local/dashboard/`) → **New app** → pick a repo → Deploy. From then
 on, `git push` redeploys within one poll interval — no login to the box.
 
+Each app row also has an **edit** button: it reopens that same form with the app's current
+environment variables filled in, so you can change them and **Save & redeploy** (re-fetch, rebuild,
+restart) without offboarding.
+
 Your repo needs one file, **`monohost.json`**, carrying only what's intrinsic to the app (monohost
 assigns the name, branch, and port):
 

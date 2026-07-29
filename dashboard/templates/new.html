@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <base href="/dashboard/">
 <meta name="mh-token" content="{{ control_token }}">
-<title>monohost · new app</title>
+<title>monohost · {% if edit %}edit {{ edit.name }}{% else %}new app{% endif %}</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,6 +67,7 @@ form { display:grid; grid-template-columns:1fr; gap:18px; }
   font-family:var(--font-sans); font-size:13px; color:var(--text-primary); transition:border-color var(--dur-base),padding var(--dur-base); }
 .field::placeholder { color:rgba(140,143,148,.7); }
 .field:focus { outline:none; border:2px solid var(--accent); padding:7px 11px; }
+.field[readonly],.field:disabled { background:var(--p-grey-100); color:var(--text-tertiary); cursor:not-allowed; }
 select.field { appearance:none; padding-right:26px;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 9 6'><path d='M0 0l4.5 6L9 0z' fill='%23111c27'/></svg>");
   background-repeat:no-repeat; background-position:right 10px center; background-size:9px; }
@@ -109,39 +110,53 @@ select.field { appearance:none; padding-right:26px;
 <body>
 <div class="crumb">
   <img src="logo.png" alt="monohost">
-  <span class="sep">/</span><span class="name">New app</span>
+  <span class="sep">/</span><span class="name">{% if edit %}Edit · {{ edit.name }}{% else %}New app{% endif %}</span>
   <a class="back" href=".">← dashboard</a>
 </div>
 
 <div class="wrap rise">
   <header class="hero">
     <div class="top"><span class="label">monohost · deploy</span><span class="flex"></span><span class="label mono">onboard.sh</span></div>
+    {% if edit %}
+    <h1 class="display">Edit {{ edit.name }}.</h1>
+    <p class="sub">Change this app's environment variables and redeploy. The privileged helper
+    re-fetches <code class="field" style="display:inline;border:0;padding:0;background:none">{{ edit.branch }}</code>,
+    rebuilds, rewrites the <code class="field" style="display:inline;border:0;padding:0;background:none">0600 .env.local</code>
+    and restarts the service — output streams live below.</p>
+    {% else %}
     <h1 class="display">Deploy a new app.</h1>
     <p class="sub">Connect a GitHub repo and mint a name. The privileged helper clones it, builds it,
     and routes it at <code class="field" style="display:inline;border:0;padding:0;background:none">{{ lan_host }}/&lt;name&gt;/</code> — output streams live below.</p>
+    {% endif %}
   </header>
 
   <div class="demo">
-    <div class="demo-cap"><span class="l">Onboard form</span><span class="r">/ repo · name · branch</span></div>
+    <div class="demo-cap"><span class="l">{% if edit %}Redeploy form{% else %}Onboard form{% endif %}</span><span class="r">/ repo · name · branch</span></div>
     <div class="demo-body">
       <form id="f">
         <label class="col" style="gap:0">
           <span class="label flabel">GitHub repo <span class="req">*</span></span>
+          {% if edit %}
+          <select class="field" id="repo" disabled><option value="{{ edit.repo }}" selected>{{ edit.repo }}</option></select>
+          <span class="fhint">Fixed for a deployed app — offboard it to point the name at a different repo.</span>
+          {% else %}
           <select class="field" id="repo" required><option value="">Loading repos…</option></select>
           <span class="fhint">Repos in the deploy org — the picker pre-fills the name and default branch.</span>
+          {% endif %}
         </label>
         <div class="row">
           <div>
             <label>
               <span class="label flabel">App name <span class="req">*</span></span>
-              <input class="field" id="name" placeholder="a-z 0-9 -" pattern="[a-z0-9][a-z0-9-]*" required>
-              <span class="fhint">Becomes the route segment — lowercase, used to mint <code style="font-family:var(--font-mono);color:var(--accent)">{{ lan_host }}/&lt;name&gt;</code>.</span>
+              <input class="field" id="name" placeholder="a-z 0-9 -" pattern="[a-z0-9][a-z0-9-]*" required
+                     {% if edit %}value="{{ edit.name }}" readonly{% endif %}>
+              <span class="fhint">{% if edit %}The route segment — <code style="font-family:var(--font-mono);color:var(--accent)">{{ lan_host }}/{{ edit.name }}/</code>. Renaming means a fresh onboard.{% else %}Becomes the route segment — lowercase, used to mint <code style="font-family:var(--font-mono);color:var(--accent)">{{ lan_host }}/&lt;name&gt;</code>.{% endif %}</span>
             </label>
           </div>
           <div class="small">
             <label>
               <span class="label flabel">Branch</span>
-              <input class="field" id="branch" value="main">
+              <input class="field" id="branch" value="{{ edit.branch if edit else 'main' }}">
             </label>
           </div>
         </div>
@@ -151,7 +166,9 @@ select.field { appearance:none; padding-right:26px;
           <span class="fhint">Secrets &amp; config for this app — written to a <code style="font-family:var(--font-mono);color:var(--accent)">0600 .env.local</code>
           and auto-loaded into the process. Use <b>+ S3 storage</b> / <b>+ MongoDB</b> to pre-fill the
           standard names (paste the values from <code style="font-family:var(--font-mono);color:var(--accent)">mh-s3-provision</code>).
-          Names: <code style="font-family:var(--font-mono);color:var(--accent)">A–Z 0–9 _</code> · <code style="font-family:var(--font-mono);color:var(--accent)">PORT/HOME/PATH</code> are reserved.</span>
+          Names: <code style="font-family:var(--font-mono);color:var(--accent)">A–Z 0–9 _</code> · <code style="font-family:var(--font-mono);color:var(--accent)">PORT/HOME/PATH</code> are reserved.{% if edit %}
+          Saving replaces the whole file, so a row you remove here is gone from the app. Clearing
+          <i>every</i> row is the one exception — an empty submission leaves the existing file untouched.{% endif %}</span>
           <div id="envrows" style="margin-top:12px"></div>
           <div class="envadd">
             <button type="button" class="addbtn" data-preset="blank">+ Variable</button>
@@ -160,7 +177,7 @@ select.field { appearance:none; padding-right:26px;
           </div>
         </div>
 
-        <button class="btn" id="go" type="submit">Deploy →</button>
+        <button class="btn" id="go" type="submit">{% if edit %}Save &amp; redeploy →{% else %}Deploy →{% endif %}</button>
       </form>
       <pre id="log" class="log" hidden></pre>
     </div>
@@ -169,26 +186,31 @@ select.field { appearance:none; padding-right:26px;
 
 <script>
 const MH_TOKEN = (document.querySelector('meta[name="mh-token"]') || {}).content || '';
+// '' for a new app; the app name when editing a deployed one (repo/name are already pinned in the
+// markup, so submit() below needs no branch of its own).
+const EDIT_APP = {{ (edit.name if edit else '') | tojson }};
 const sel = document.getElementById('repo');
 const nameI = document.getElementById('name');
 const branchI = document.getElementById('branch');
 const log = document.getElementById('log');
 const go = document.getElementById('go');
 
-fetch('api/repos').then(r => r.json()).then(repos => {
-  if (repos.error) { sel.innerHTML = `<option value="">error: ${repos.error}${repos.detail ? ' — ' + repos.detail : ''}</option>`; return; }
-  sel.innerHTML = '<option value="">Select a repo…</option>' + repos.map(x =>
-    `<option value="${x.clone_url}" data-name="${x.name}" data-branch="${x.default_branch}">${x.full_name || x.name}${x.private ? ' (private)' : ''}</option>`
-  ).join('');
-}).catch(() => { sel.innerHTML = '<option value="">failed to load repos</option>'; });
+if (!EDIT_APP) {
+  fetch('api/repos').then(r => r.json()).then(repos => {
+    if (repos.error) { sel.innerHTML = `<option value="">error: ${repos.error}${repos.detail ? ' — ' + repos.detail : ''}</option>`; return; }
+    sel.innerHTML = '<option value="">Select a repo…</option>' + repos.map(x =>
+      `<option value="${x.clone_url}" data-name="${x.name}" data-branch="${x.default_branch}">${x.full_name || x.name}${x.private ? ' (private)' : ''}</option>`
+    ).join('');
+  }).catch(() => { sel.innerHTML = '<option value="">failed to load repos</option>'; });
 
-sel.addEventListener('change', () => {
-  const o = sel.selectedOptions[0];
-  if (o && o.dataset.name) {
-    if (!nameI.value) nameI.value = o.dataset.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    if (o.dataset.branch) branchI.value = o.dataset.branch;
-  }
-});
+  sel.addEventListener('change', () => {
+    const o = sel.selectedOptions[0];
+    if (o && o.dataset.name) {
+      if (!nameI.value) nameI.value = o.dataset.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      if (o.dataset.branch) branchI.value = o.dataset.branch;
+    }
+  });
+}
 
 // ── environment variable editor ──────────────────────────────────────────────
 const envRows = document.getElementById('envrows');
@@ -275,6 +297,20 @@ function gatherEnv() {
 }
 
 syncEnvEmpty();
+
+// edit mode: pre-fill the rows with the app's current .env.local (same LAN + admin-token gate as
+// every mutation, so a missing token surfaces here rather than silently showing an empty form).
+if (EDIT_APP) {
+  fetch('api/env/' + encodeURIComponent(EDIT_APP), { headers: { 'X-MH-Token': MH_TOKEN }, cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(vars => { (vars || []).forEach(v => addRow(v.name, v.value)); syncEnvEmpty(); })
+    .catch(err => {
+      const w = document.createElement('div');
+      w.className = 'envempty'; w.style.color = 'var(--alert)';
+      w.textContent = `Could not load the current variables (${err.message}). Saving now would leave the existing ones untouched.`;
+      envRows.appendChild(w);
+    });
+}
 
 document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();

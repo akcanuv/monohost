@@ -245,8 +245,12 @@ database/storage credentials — you provide as **environment variables on the o
   `process.env`; no `run`-command boilerplate.
 - Names must match `^[A-Za-z_][A-Za-z0-9_]*$`. **`PORT`, `HOME`, and `PATH` are reserved** (monohost
   sets them) and are rejected.
-- Re-onboarding with the env section **empty keeps your existing secrets**; re-enter values to
-  replace them. Secrets are never read back into the browser.
+- To change them later, hit **edit** on the app's row: the same form reopens with the current
+  values filled in, and **Save & redeploy** rewrites them and restarts the app. Saving replaces the
+  whole set, so a row you delete is gone from the app — with one exception: submitting an **empty**
+  env section keeps the existing values (that's how a code-only redeploy leaves secrets alone).
+- Values are read back into the edit form, so that page is **LAN + token gated** like every other
+  mutation — the same gate that guards onboard/expose.
 - **Still don't commit secrets.** Ship non-secret config as committed defaults; set the secret bits
   via the editor. The onboarding page is **LAN + token gated**.
 

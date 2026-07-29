@@ -14,6 +14,7 @@ import json
 import os
 import platform
 import re
+import shlex
 import shutil
 import socket
 import subprocess
@@ -344,6 +345,24 @@ def app_manifest(name: str) -> dict:
     return {}
 
 
+def read_env_local(name: str) -> list[dict]:
+    """An app's current env vars, parsed back out of its 0600 .env.local.
+
+    onboard.sh writes one `KEY=<shlex.quote(value)>` per line, so a single shlex.split over the
+    whole file round-trips it exactly — quoting, spaces and embedded newlines included. Unreadable
+    or malformed file → no vars (the form then just shows none)."""
+    try:
+        toks = shlex.split((APPS_DIR / name / ".env.local").read_text())
+    except Exception:
+        return []
+    out: list[dict] = []
+    for tok in toks:
+        k, sep, v = tok.partition("=")
+        if sep and k:
+            out.append({"name": k, "value": v})
+    return out
+
+
 def deployed_sha(name: str) -> str:
     try:
         out = subprocess.run(
@@ -534,6 +553,15 @@ async def api_repos():
     return JSONResponse(repos)
 
 
+@app.get("/api/env/{name}")
+def api_env(name: str, _auth: None = Depends(require_control)):
+    """Current env vars for an app, used to pre-fill the edit form. Values come back in the clear,
+    so this rides the same LAN-only + admin-token gate as the mutating endpoints."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,30}", name):
+        return JSONResponse({"error": "invalid name"}, status_code=400)
+    return JSONResponse(read_env_local(name))
+
+
 def env_payload(body: dict) -> bytes:
     """Normalize the onboard request's optional `env` into the JSON bytes onboard.sh reads on
     stdin: a list of {"name","value"} objects, keeping only entries with a non-empty name.
@@ -650,9 +678,15 @@ async def unexpose(request: Request, _auth: None = Depends(require_control)):
 
 
 @app.get("/new", response_class=HTMLResponse)
-async def new_app(request: Request):
+async def new_app(request: Request, name: str = ""):
+    # ?name=<app> → edit mode: the same form, with repo + name pinned to the registry row and the
+    # env rows pre-filled from .env.local (fetched separately, behind the control gate). Submitting
+    # re-runs onboard.sh, which is idempotent — it rewrites .env.local and redeploys the app.
+    edit = next((a for a in read_registry() if a["name"] == name), None) if name else None
     return templates.TemplateResponse(
-        request, "new.html", {"control_token": token_for(request), "lan_host": lan_host()}
+        request,
+        "new.html",
+        {"control_token": token_for(request), "lan_host": lan_host(), "edit": edit},
     )
 
 
